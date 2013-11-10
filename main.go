@@ -21,7 +21,7 @@ func readNumber(in Input) (Number, error) {
 	if err != nil {
 		return 0, err
 	}
-	next := in.GetRune()
+	next := in.NextRune()
 	if !unicode.IsSpace(next) && next != ')' {
 		return 0, fmt.Errorf("Invalid number")
 	}

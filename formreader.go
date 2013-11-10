@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"os"
 	"unicode"
 )
 
@@ -12,7 +13,7 @@ type Input struct {
 func (in Input) NextRune() rune {
 	cur, _, err := in.ReadRune()
 	if err != nil {
-		panic(err)
+		os.Exit(0)
 	}
 	return cur
 }
