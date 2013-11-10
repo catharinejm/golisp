@@ -38,45 +38,59 @@ func nextBlackspaceRune(input *bufio.Reader) rune {
   return readRune(input)
 }
 
-func flushInput(input *bufio.Reader) {
-  for _, err := input.ReadByte(); err != nil; _, err = input.ReadByte() {}
-}
-
-func readNumber(input *bufio.Reader) Number {
+func readNumber(input *bufio.Reader) (Number, error) {
 	var n Number
-	fmt.Fscanf(input, "%d", &n)
-	return n
+  _, err := fmt.Fscanf(input, "%d", &n)
+  if err != nil {
+    return 0, err
+  }
+  next := readRune(input)
+  if !unicode.IsSpace(next) && next != ')' {
+    return 0, fmt.Errorf("Invalid number")
+  }
+  input.UnreadRune()
+	return n, nil
 }
 
-func readList(input *bufio.Reader) *Pair {
+func readList(input *bufio.Reader) (*Pair, error) {
 	cur := nextBlackspaceRune(input)
 
 	if cur == ')' {
-		return nil
+		return nil, nil
 	}
 
   input.UnreadRune()
 
-	head := readForm(input)
+	head, err := readForm(input)
+  if err != nil {
+    return nil, err
+  }
+
 	cur = nextBlackspaceRune(input)
 	var tail Form
+
 	if cur == '.' {
-		tail = readForm(input)
+		tail, err = readForm(input)
+    if err != nil {
+      return nil, err
+    }
+
     cur = nextBlackspaceRune(input)
     if cur != ')' {
-      fmt.Println("ERROR: Invalid list structure.")
-      flushInput(input)
-      return nil
+      return nil, fmt.Errorf("Invalid list structure.")
     }
 	} else {
 		input.UnreadRune()
-		tail = readList(input)
+		tail, err = readList(input)
+    if err != nil {
+      return nil, err
+    }
 	}
 
-	return &Pair{head, tail}
+	return &Pair{head, tail}, nil
 }
 
-func readForm(input *bufio.Reader) Form {
+func readForm(input *bufio.Reader) (Form, error) {
 	cur := nextBlackspaceRune(input)
 
 	switch {
@@ -86,7 +100,8 @@ func readForm(input *bufio.Reader) Form {
 		input.UnreadRune()
 		return readNumber(input)
 	}
-	return nil
+
+	return nil, fmt.Errorf("Something weird happened.")
 }
 
 func printList(list *Pair) {
@@ -122,10 +137,16 @@ func main() {
 	rdr := bufio.NewReader(os.Stdin)
 	for {
 		var f Form
+    var err error
 
 		fmt.Print("> ")
-		f = readForm(rdr)
-		printForm(f)
-    fmt.Println()
+		f, err = readForm(rdr)
+    if (err != nil) {
+      rdr.ReadLine()
+      fmt.Println("Error:", err);
+    } else {
+      printForm(f)
+      fmt.Println()
+    }
 	}
 }
