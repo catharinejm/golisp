@@ -33,6 +33,11 @@ func killWhitespace(input *bufio.Reader) {
 	}
 }
 
+func nextBlackspaceRune(input *bufio.Reader) rune {
+  killWhitespace(input)
+  return readRune(input)
+}
+
 func flushInput(input *bufio.Reader) {
   for _, err := input.ReadByte(); err != nil; _, err = input.ReadByte() {}
 }
@@ -44,8 +49,7 @@ func readNumber(input *bufio.Reader) Number {
 }
 
 func readList(input *bufio.Reader) *Pair {
-	killWhitespace(input)
-	cur := readRune(input)
+	cur := nextBlackspaceRune(input)
 
 	if cur == ')' {
 		return nil
@@ -54,13 +58,11 @@ func readList(input *bufio.Reader) *Pair {
   input.UnreadRune()
 
 	head := readForm(input)
-	killWhitespace(input)
-	cur = readRune(input)
+	cur = nextBlackspaceRune(input)
 	var tail Form
 	if cur == '.' {
 		tail = readForm(input)
-    killWhitespace(input)
-    cur = readRune(input)
+    cur = nextBlackspaceRune(input)
     if cur != ')' {
       fmt.Println("ERROR: Invalid list structure.")
       flushInput(input)
@@ -75,15 +77,12 @@ func readList(input *bufio.Reader) *Pair {
 }
 
 func readForm(input *bufio.Reader) Form {
-	killWhitespace(input)
-	cur := readRune(input)
+	cur := nextBlackspaceRune(input)
 
 	switch {
 	case cur == '(':
-    fmt.Println("Reading list")
 		return readList(input)
 	case unicode.IsNumber(cur):
-    fmt.Println("reading number")
 		input.UnreadRune()
 		return readNumber(input)
 	}
