@@ -1,6 +1,16 @@
 package main
 
+/*
+#cgo CFLAGS: -I/usr/local/Cellar/readline/6.2.4/include
+#cgo CFLAGS: -Qunused-arguments
+#cgo LDFLAGS: -L/usr/local/Cellar/readline/6.2.4/lib
+#cgo LDFLAGS: -lreadline
+#include <readline/readline.h>
+*/
+
 import (
+	"C"
+	"unsafe"
 	"bufio"
 	"fmt"
 	"os"
@@ -129,23 +139,22 @@ func printForm(form Form) {
 }
 
 func main() {
-	rdr := bufio.NewReader(os.Stdin)
-	scanner := NewInput(rdr)
+	prompt := C.CString("> ")
 	for {
 		var f Form
 		var err error
 
-		fmt.Print("> ")
-		tok, _ := scanner.NextToken()
-		if tok == "" {
+		line := C.readline(prompt)
+		if line == nil {
 			os.Exit(0)
 		}
-		scanner.ReplaceToken(tok)
+
+		scanner := NewInput(strings.Reader(C.GoString(line)))
+		C.free(unsafe.Pointer(line))
 
 		f, err = readForm(scanner)
 		if err != nil {
 			fmt.Println("Error:", err)
-			scanner = NewInput(rdr)
 		} else {
 			fmt.Print("VALUE: ")
 			printForm(f)
