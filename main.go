@@ -18,83 +18,67 @@ type Pair struct {
 	tail Form
 }
 
-func analyzeToken(token string) (Form, error) {
+func analyzeToken(token string) (Form) {
 	r, _ := utf8.DecodeRuneInString(token)
 	switch {
 	case unicode.IsNumber(r) || r == '-':
 		return readNumber(token)
 	default:
-		return nil, fmt.Errorf("What is this? I can't deal with this. Stop giving me crap: %s", token)
+		panic(fmt.Sprint("What is this? I can't deal with this. Stop giving me crap:", token))
 	}
 }
 
-func readNumber(token string) (Number, error) {
+func readNumber(token string) (Number) {
+	var n Number
+	var err error
 	if strings.Contains(token, ".") {
-		return strconv.ParseFloat(token, 64)
+		n, err = strconv.ParseFloat(token, 64)
 	} else {
-		return strconv.ParseInt(token, 0, 64)
+		n, err = strconv.ParseInt(token, 0, 64)
 	}
 
-	return 0, fmt.Errorf("What kind of number is this: %s", token)
+	if err != nil {
+		panic(err)
+	}
+	return n
 }
 
-func readList(in *Input) (*Pair, error) {
-	cur, err := in.NextToken()
-	if err != nil {
-		return nil, err
-	}
+func readList(in *Input) (*Pair) {
+	cur := in.NextToken()
 	if cur == ")" {
-		return nil, nil
+		return nil
 	}
 
 	in.ReplaceToken(cur)
-	head, err := readForm(in)
-	if err != nil {
-		return nil, err
-	}
+	head := readForm(in)
 
 	var tail Form
-	cur, err = in.NextToken()
-	if err != nil {
-		return nil, err
-	}
+	cur = in.NextToken()
 
 	if cur == "." {
-		tail, err = readForm(in)
-		if err != nil {
-			return nil, err
-		}
+		tail = readForm(in)
 
-		cur, err = in.NextToken()
-		if err != nil {
-			return nil, err
-		}
+		cur = in.NextToken()
 		if cur != ")" {
-			return nil, fmt.Errorf("Invalid list structure.")
+			panic("Invalid list structure.")
 		}
 	} else {
 		in.ReplaceToken(cur)
-		tail, err = readList(in)
-		if err != nil {
-			return nil, err
-		}
+		tail = readList(in)
 	}
 
-	return &Pair{head, tail}, nil
+	return &Pair{head, tail}
 }
 
-func readForm(in *Input) (Form, error) {
-	token, err := in.NextToken()
-	if err != nil {
-		return nil, err
-	}
+func readForm(in *Input) (Form) {
+	token := in.NextToken()
 	if token == "(" {
 		return readList(in)
 	} else {
 		return analyzeToken(token)
 	}
 
-	return nil, fmt.Errorf("Something weird happened.")
+	panic("Something weird happened.")
 }
 
 func printList(list *Pair) {
@@ -128,28 +112,34 @@ func printForm(form Form) {
 	}
 }
 
-func main() {
-	rdr := bufio.NewReader(os.Stdin)
-	scanner := NewInput(rdr)
+func repl(rdr *bufio.Reader) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Error:", err)
+			repl(rdr)
+		}
+	}()
+	in := NewInput(rdr)
 	for {
 		var f Form
-		var err error
 
 		fmt.Print("> ")
-		tok, _ := scanner.NextToken()
+		tok := in.NextToken()
 		if tok == "" {
 			os.Exit(0)
 		}
-		scanner.ReplaceToken(tok)
+		in.ReplaceToken(tok)
 
-		f, err = readForm(scanner)
-		if err != nil {
-			fmt.Println("Error:", err)
-			scanner = NewInput(rdr)
-		} else {
-			fmt.Print("VALUE: ")
-			printForm(f)
-			fmt.Println()
-		}
+		f = readForm(in)
+
+		fmt.Print("VALUE: ")
+		printForm(f)
+		fmt.Println()
 	}
+}
+
+func main() {
+	var rdr *bufio.Reader
+	rdr = bufio.NewReader(os.Stdin)
+	repl(rdr)
 }

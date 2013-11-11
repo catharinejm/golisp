@@ -73,14 +73,14 @@ func NewInput(in io.Reader) *Input {
 	return input
 }
 
-func (in *Input) NextToken() (string, error) {
+func (in *Input) NextToken() (string) {
 	if !in.ReadNextToken() {
-		return "", in.Err()
+		panic(in.Err())
 	}
 	if in.lastTok == "" {
-		return in.Text(), nil
+		return in.Text()
 	} else {
-		return in.lastTok, nil
+		return in.lastTok
 	}
 }
 
