@@ -24,7 +24,7 @@ func analyzeToken(token string) (Form, error) {
   case unicode.IsNumber(r) || r == '-':
     return readNumber(token)
   default:
-    return nil, fmt.Errorf("What is this? I can't deal with this. Stop giving me crap. (%s)", token)
+    return nil, fmt.Errorf("What is this? I can't deal with this. Stop giving me crap: %s", token)
   }
 }
 
@@ -39,19 +39,19 @@ func readNumber(token string) (Number, error) {
 }
 
 func readList(in *Input) (*Pair, error) {
-	head, err := readForm(in)
+	cur, err := in.NextToken()
 	if err != nil { return nil, err }
-  if head == ")" { return nil, nil }
+  if cur == ")" { return nil, nil }
+
+  in.ReplaceToken(cur)
+  head, err := readForm(in)
+  if err != nil { return nil, err }
 
 	var tail Form
-  cur, err := in.NextToken()
+  cur, err = in.NextToken()
   if err != nil { return nil, err }
 
   if cur == "." {
-    cur, err = in.NextToken()
-		if err != nil { return nil, err }
-
-    in.ReplaceToken(cur)
 		tail, err = readForm(in)
 		if err != nil { return nil, err }
 
@@ -61,6 +61,7 @@ func readList(in *Input) (*Pair, error) {
 			return nil, fmt.Errorf("Invalid list structure.")
 		}
 	} else {
+    in.ReplaceToken(cur)
 		tail, err = readList(in)
 		if err != nil { return nil, err }
 	}
@@ -112,17 +113,23 @@ func printForm(form Form) {
 }
 
 func main() {
-	scanner := NewInput(bufio.NewReader(os.Stdin))
+  rdr := bufio.NewReader(os.Stdin)
+  scanner := NewInput(rdr)
 	for {
 		var f Form
 		var err error
 
 		fmt.Print("> ")
+    tok, _ := scanner.NextToken()
+    if tok == "" { os.Exit(0) }
+    scanner.ReplaceToken(tok)
+
 		f, err = readForm(scanner)
 		if err != nil {
-      // rdr.ReadLine()
 			fmt.Println("Error:", err)
+      scanner = NewInput(rdr)
 		} else {
+      fmt.Print("VALUE: ")
 			printForm(f)
 			fmt.Println()
 		}
