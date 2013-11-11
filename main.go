@@ -121,15 +121,15 @@ func printForm(form Form) {
 }
 
 func main() {
-	rdr := Input{bufio.NewReader(os.Stdin)}
+	scanner := NewInput(bufio.NewReader(os.Stdin))
 	for {
 		var f Form
 		var err error
 
 		fmt.Print("> ")
-		f, err = readForm(rdr)
+		f, err = readForm(scanner)
 		if err != nil {
-			rdr.ReadLine()
+      // rdr.ReadLine()
 			fmt.Println("Error:", err)
 		} else {
 			printForm(f)
