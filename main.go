@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
-	"strings"
-	"strconv"
 )
 
 type Form interface{}
@@ -19,63 +19,79 @@ type Pair struct {
 }
 
 func analyzeToken(token string) (Form, error) {
-  r, _ := utf8.DecodeRuneInString(token)
-  switch {
-  case unicode.IsNumber(r) || r == '-':
-    return readNumber(token)
-  default:
-    return nil, fmt.Errorf("What is this? I can't deal with this. Stop giving me crap: %s", token)
-  }
+	r, _ := utf8.DecodeRuneInString(token)
+	switch {
+	case unicode.IsNumber(r) || r == '-':
+		return readNumber(token)
+	default:
+		return nil, fmt.Errorf("What is this? I can't deal with this. Stop giving me crap: %s", token)
+	}
 }
 
 func readNumber(token string) (Number, error) {
-  if strings.Contains(token, ".") {
-    return strconv.ParseFloat(token, 64)
-  } else {
-    return strconv.ParseInt(token, 0, 64)
-  }
+	if strings.Contains(token, ".") {
+		return strconv.ParseFloat(token, 64)
+	} else {
+		return strconv.ParseInt(token, 0, 64)
+	}
 
-  return 0, fmt.Errorf("What kind of number is this: %s", token)
+	return 0, fmt.Errorf("What kind of number is this: %s", token)
 }
 
 func readList(in *Input) (*Pair, error) {
 	cur, err := in.NextToken()
-	if err != nil { return nil, err }
-  if cur == ")" { return nil, nil }
+	if err != nil {
+		return nil, err
+	}
+	if cur == ")" {
+		return nil, nil
+	}
 
-  in.ReplaceToken(cur)
-  head, err := readForm(in)
-  if err != nil { return nil, err }
+	in.ReplaceToken(cur)
+	head, err := readForm(in)
+	if err != nil {
+		return nil, err
+	}
 
 	var tail Form
-  cur, err = in.NextToken()
-  if err != nil { return nil, err }
+	cur, err = in.NextToken()
+	if err != nil {
+		return nil, err
+	}
 
-  if cur == "." {
+	if cur == "." {
 		tail, err = readForm(in)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 
 		cur, err = in.NextToken()
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		if cur != ")" {
 			return nil, fmt.Errorf("Invalid list structure.")
 		}
 	} else {
-    in.ReplaceToken(cur)
+		in.ReplaceToken(cur)
 		tail, err = readList(in)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Pair{head, tail}, nil
 }
 
 func readForm(in *Input) (Form, error) {
-  token, err := in.NextToken()
-  if err != nil { return nil, err }
-  if token == "(" {
+	token, err := in.NextToken()
+	if err != nil {
+		return nil, err
+	}
+	if token == "(" {
 		return readList(in)
-  } else {
-    return analyzeToken(token)
+	} else {
+		return analyzeToken(token)
 	}
 
 	return nil, fmt.Errorf("Something weird happened.")
@@ -113,23 +129,25 @@ func printForm(form Form) {
 }
 
 func main() {
-  rdr := bufio.NewReader(os.Stdin)
-  scanner := NewInput(rdr)
+	rdr := bufio.NewReader(os.Stdin)
+	scanner := NewInput(rdr)
 	for {
 		var f Form
 		var err error
 
 		fmt.Print("> ")
-    tok, _ := scanner.NextToken()
-    if tok == "" { os.Exit(0) }
-    scanner.ReplaceToken(tok)
+		tok, _ := scanner.NextToken()
+		if tok == "" {
+			os.Exit(0)
+		}
+		scanner.ReplaceToken(tok)
 
 		f, err = readForm(scanner)
 		if err != nil {
 			fmt.Println("Error:", err)
-      scanner = NewInput(rdr)
+			scanner = NewInput(rdr)
 		} else {
-      fmt.Print("VALUE: ")
+			fmt.Print("VALUE: ")
 			printForm(f)
 			fmt.Println()
 		}
