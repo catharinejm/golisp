@@ -65,7 +65,7 @@ func NewInput(in io.Reader) *Input {
 			return len(data) - start, data[start:], nil
 		}
 		// Request more data.
-		fmt.Println("need more data 2")
+		//fmt.Println("need more data 2")
 		return 0, nil, nil
 	}
 	input.Split(split)
