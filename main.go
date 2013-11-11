@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"unicode"
+	"unicode/utf8"
 	"strings"
 	"strconv"
 )
@@ -17,56 +18,53 @@ type Pair struct {
 	tail Form
 }
 
-func readNumber(in Input) (Number, error) {
-  var num string
-	_, err := fmt.Fscan(in, &num)
-	if err != nil {
-		return 0, err
-	}
-  if strings.HasSuffix(num, ")") {
-    in.BacktrackBytes(1)
-    num = strings.TrimSuffix(num, ")")
+func analyzeToken(token string) (Form, error) {
+  r, _ := utf8.DecodeRuneInString(token)
+  switch {
+  case unicode.IsNumber(r) || r == '-':
+    return readNumber(token)
+  default:
+    return nil, fmt.Errorf("What is this? I can't deal with this. Stop giving me crap. (%s)", token)
   }
-
-  if strings.Contains(num, ".") {
-    return strconv.ParseFloat(num, 64)
-  } else {
-    return strconv.ParseInt(num, 0, 64)
-  }
-
-  return 0, fmt.Errorf("What kind of number is this: %s", num)
 }
 
-func readList(in Input) (*Pair, error) {
-	cur := in.GetRune()
+func readNumber(token string) (Number, error) {
+  if strings.Contains(token, ".") {
+    return strconv.ParseFloat(token, 64)
+  } else {
+    return strconv.ParseInt(token, 0, 64)
+  }
 
-	if cur == ')' {
-		return nil, nil
-	}
+  return 0, fmt.Errorf("What kind of number is this: %s", token)
+}
 
-	in.Backtrack()
-
-	head, err := readForm(in)
+func readList(in *Input, cur string) (*Pair, error) {
+	head, err := readForm(in, cur)
 	if err != nil {
 		return nil, err
 	}
 
-	cur = in.GetRune()
+	cur, err = in.NextToken()
+  if err != nil { return nil, err }
+
 	var tail Form
 
-	if cur == '.' {
-		tail, err = readForm(in)
-		if err != nil {
-			return nil, err
-		}
+  if cur == ")" {
+    tail = nil
+  } else if cur == "." {
+    cur, err = in.NextToken()
+		if err != nil { return nil, err }
 
-		cur = in.GetRune()
-		if cur != ')' {
+		tail, err = readForm(in, cur)
+		if err != nil { return nil, err }
+
+		cur, err = in.NextToken()
+		if err != nil { return nil, err }
+		if cur != ")" {
 			return nil, fmt.Errorf("Invalid list structure.")
 		}
 	} else {
-		in.Backtrack()
-		tail, err = readList(in)
+		tail, err = readList(in, cur)
 		if err != nil {
 			return nil, err
 		}
@@ -75,15 +73,15 @@ func readList(in Input) (*Pair, error) {
 	return &Pair{head, tail}, nil
 }
 
-func readForm(in Input) (Form, error) {
-	cur := in.GetRune()
-
+func readForm(in *Input, token string) (Form, error) {
 	switch {
-	case cur == '(':
-		return readList(in)
-	case unicode.IsNumber(cur):
-		in.Backtrack()
-		return readNumber(in)
+	case token == "(":
+    token, err := in.NextToken()
+    if err != nil { return nil, err }
+    if token == ")" { return nil, nil }
+		return readList(in, token)
+  default:
+    return analyzeToken(token)
 	}
 
 	return nil, fmt.Errorf("Something weird happened.")
@@ -123,17 +121,24 @@ func printForm(form Form) {
 func main() {
 	scanner := NewInput(bufio.NewReader(os.Stdin))
 	for {
-		var f Form
+		//var f Form
 		var err error
 
 		fmt.Print("> ")
-		f, err = readForm(scanner)
-		if err != nil {
-      // rdr.ReadLine()
-			fmt.Println("Error:", err)
-		} else {
-			printForm(f)
-			fmt.Println()
-		}
+    tok, err := scanner.NextToken()
+    if err != nil {
+      fmt.Println("Error:", err)
+      continue
+    }
+    fmt.Printf("read: %s\n", tok)
+
+//		f, err = readForm(scanner, tok)
+//		if err != nil {
+//      // rdr.ReadLine()
+//			fmt.Println("Error:", err)
+//		} else {
+//			printForm(f)
+//			fmt.Println()
+//		}
 	}
 }
