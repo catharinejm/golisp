@@ -38,24 +38,21 @@ func readNumber(token string) (Number, error) {
   return 0, fmt.Errorf("What kind of number is this: %s", token)
 }
 
-func readList(in *Input, cur string) (*Pair, error) {
-	head, err := readForm(in, cur)
-	if err != nil {
-		return nil, err
-	}
-
-	cur, err = in.NextToken()
-  if err != nil { return nil, err }
+func readList(in *Input) (*Pair, error) {
+	head, err := readForm(in)
+	if err != nil { return nil, err }
+  if head == ")" { return nil, nil }
 
 	var tail Form
+  cur, err := in.NextToken()
+  if err != nil { return nil, err }
 
-  if cur == ")" {
-    tail = nil
-  } else if cur == "." {
+  if cur == "." {
     cur, err = in.NextToken()
 		if err != nil { return nil, err }
 
-		tail, err = readForm(in, cur)
+    in.ReplaceToken(cur)
+		tail, err = readForm(in)
 		if err != nil { return nil, err }
 
 		cur, err = in.NextToken()
@@ -64,23 +61,19 @@ func readList(in *Input, cur string) (*Pair, error) {
 			return nil, fmt.Errorf("Invalid list structure.")
 		}
 	} else {
-		tail, err = readList(in, cur)
-		if err != nil {
-			return nil, err
-		}
+		tail, err = readList(in)
+		if err != nil { return nil, err }
 	}
 
 	return &Pair{head, tail}, nil
 }
 
-func readForm(in *Input, token string) (Form, error) {
-	switch {
-	case token == "(":
-    token, err := in.NextToken()
-    if err != nil { return nil, err }
-    if token == ")" { return nil, nil }
-		return readList(in, token)
-  default:
+func readForm(in *Input) (Form, error) {
+  token, err := in.NextToken()
+  if err != nil { return nil, err }
+  if token == "(" {
+		return readList(in)
+  } else {
     return analyzeToken(token)
 	}
 
@@ -121,24 +114,17 @@ func printForm(form Form) {
 func main() {
 	scanner := NewInput(bufio.NewReader(os.Stdin))
 	for {
-		//var f Form
+		var f Form
 		var err error
 
 		fmt.Print("> ")
-    tok, err := scanner.NextToken()
-    if err != nil {
-      fmt.Println("Error:", err)
-      continue
-    }
-    fmt.Printf("read: %s\n", tok)
-
-//		f, err = readForm(scanner, tok)
-//		if err != nil {
-//      // rdr.ReadLine()
-//			fmt.Println("Error:", err)
-//		} else {
-//			printForm(f)
-//			fmt.Println()
-//		}
+		f, err = readForm(scanner)
+		if err != nil {
+      // rdr.ReadLine()
+			fmt.Println("Error:", err)
+		} else {
+			printForm(f)
+			fmt.Println()
+		}
 	}
 }

@@ -13,11 +13,13 @@ func IsWhitespace(r rune) bool {
 }
 
 type Input struct {
+  lastTok string
   *bufio.Scanner
 }
 
 func NewInput(in io.Reader) *Input {
   input := &Input{
+    "",
     bufio.NewScanner(in),
   }
 
@@ -67,9 +69,24 @@ func NewInput(in io.Reader) *Input {
 }
 
 func (in *Input) NextToken() (string, error) {
-  if ok := in.Scan(); ok {
-    return in.Text(), nil
-  } else {
+  if ! in.ReadNextToken() {
     return "", in.Err()
   }
+  if in.lastTok == "" {
+    return in.Text(), nil
+  } else {
+    return in.lastTok, nil
+  }
+}
+
+func (in *Input) ReplaceToken(tok string) {
+  in.lastTok = tok
+}
+
+func (in *Input) ReadNextToken() bool {
+  if in.lastTok != "" {
+    in.lastTok = ""
+    return true
+  }
+  return in.Scan()
 }
