@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"unicode"
+	"strings"
+	"strconv"
 )
 
 type Form interface{}
-type Number int64
+type Number interface{}
 
 type Pair struct {
 	head Form
@@ -16,17 +18,23 @@ type Pair struct {
 }
 
 func readNumber(in Input) (Number, error) {
-	var n Number
-	_, err := fmt.Fscanf(in, "%d", &n)
+  var num string
+	_, err := fmt.Fscan(in, &num)
 	if err != nil {
 		return 0, err
 	}
-	next := in.NextRune()
-	if !unicode.IsSpace(next) && next != ')' {
-		return 0, fmt.Errorf("Invalid number")
-	}
-	in.Backtrack()
-	return n, nil
+  if strings.HasSuffix(num, ")") {
+    in.BacktrackBytes(1)
+    num = strings.TrimSuffix(num, ")")
+  }
+
+  if strings.Contains(num, ".") {
+    return strconv.ParseFloat(num, 64)
+  } else {
+    return strconv.ParseInt(num, 0, 64)
+  }
+
+  return 0, fmt.Errorf("What kind of number is this: %s", num)
 }
 
 func readList(in Input) (*Pair, error) {
@@ -103,12 +111,12 @@ func printList(list *Pair) {
 
 func printForm(form Form) {
 	switch form.(type) {
-	case Number:
-		fmt.Print(form)
 	case *Pair:
 		fmt.Print("(")
 		printList(form.(*Pair))
 		fmt.Print(")")
+	case int64, float64:
+		fmt.Print(form)
 	}
 }
 

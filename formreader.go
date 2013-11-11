@@ -6,6 +6,10 @@ import (
 	"unicode"
 )
 
+func IsWhitespace(r rune) bool {
+  return unicode.IsSpace(r) || r == ','
+}
+
 type Input struct {
 	*bufio.Reader
 }
@@ -30,10 +34,19 @@ func (in *Input) Backtrack() {
 	}
 }
 
+func (in *Input) BacktrackBytes(n int) {
+  for i := 0; i < n; i++ {
+    err := in.UnreadByte()
+    if err != nil {
+      panic(err)
+    }
+  }
+}
+
 func (in *Input) StripWhitespace() {
 	for {
 		cur := in.NextRune()
-		if !unicode.IsSpace(cur) {
+		if !IsWhitespace(cur) {
 			in.Backtrack()
 			break
 		}
